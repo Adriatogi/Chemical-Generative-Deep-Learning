@@ -9,7 +9,7 @@ Original file is located at
 Import Dependencies
 """
 
-oimport sys
+import sys
 import os
 import pandas as pd
 import numpy as np
@@ -28,20 +28,28 @@ from google.colab import drive
 import tensorflow as tf
 from keras.preprocessing.text import Tokenizer
 from tensorflow import keras
-drive.mount('/content/drive')
+from tensorflow.keras.callbacks import EarlyStopping
+from keras.models import load_model
+#drive.mount('/content/drive')
+
+DATA_PATH = "/data/data.txt"
+NEW_DATA = "/data/processed_data.txt"
+TRAIN_DATA = "/data/train_data.txt"
+TEST_DATA = "/data/test_data.txt"
+VAL_DATA = "/data/val_data.txt"
 
 """Filter Dataset Into Smaller Segments"""
 
-new = open("/content/drive/MyDrive/CS230/processed_data.txt", "w")
-for line in open("/content/drive/MyDrive/CS230/data.txt", "r"):  
+new = open(NEW_DATA, "w")
+for line in open(DATA_PATH, "r"):  
         if 30 < len(line) < 50:
             new.write(line)
-file_new = np.array(list(open('/content/drive/MyDrive/CS230/processed_data.txt')))
+file_new = np.array(list(open(NEW_DATA)))
 print(file_new.shape)
 
 """Find Maximum Sequence Length"""
 
-file = open("/content/drive/MyDrive/CS230/processed_data.txt")
+file = open(NEW_DATA)
 max_seq_len = int(len(max(file,key=len)))
 print ("Max Sequence Length: ", max_seq_len)
 
@@ -76,7 +84,7 @@ def padFile(fileName):
   # np.savetxt('/content/drive/MyDrive/CS230/padded_processed_data.txt', var, fmt ='%s', newline='')
   return var
 
-var = padFile('/content/drive/MyDrive/CS230/processed_data.txt')
+var = padFile(NEW_DATA)
 var = np.array(var)
 
 """Load & Save Datasets"""
@@ -91,85 +99,123 @@ full_train, test = train_test_split(np.array(var), test_size=0.25, random_state=
 #split full train set into smaller train set and validation (dev) set
 # np.savetxt('/content/drive/MyDrive/CS230/full_train_data.txt', full_train, fmt ='%s', newline='')
 train, val = train_test_split(np.array(full_train), test_size=0.10, random_state=seed)
-np.savetxt('/content/drive/MyDrive/CS230/train_data.txt', train, fmt ='%s', newline='')
-np.savetxt('/content/drive/MyDrive/CS230/test_data.txt', test, fmt ='%s', newline='')
-np.savetxt('/content/drive/MyDrive/CS230/val_data.txt', val, fmt='%s', newline='')
+np.savetxt(TRAIN_DATA, train, fmt ='%s', newline='')
+np.savetxt(TEST_DATA, test, fmt ='%s', newline='')
+np.savetxt(VAL_DATA, val, fmt='%s', newline='')
 print("Sample:", train[seed])
 print("Train:", train.shape)
 print("Validation:", val.shape)
 print("Test:", test.shape)
 
-"""Data Concatenation"""
+"""Train Data Processing"""
 
-train = pd.read_fwf('/content/drive/MyDrive/CS230/train_data.txt')
+#Load Data (optional: only if previous cells are not run and data is saved already)
+# train = pd.read_fwf('/content/drive/MyDrive/CS230/train_data.txt')
 
-def concatenate(l):
+#Concatenate Data
+def concatenate(data):
     res = ''
-    for word in train:
+    for word in data:
       # print(word)
       res += word
     return res
-
 train = concatenate(train)
-
 print(train[0:100])
 
+#Tokenize Data
 tokenizer = tf.keras.preprocessing.text.Tokenizer(num_words=None, char_level=True, lower=False)
 tokenizer.fit_on_texts(train)
-
 new_train = tokenizer.texts_to_sequences(train)
-
 print(new_train[0:100])
 print(train[0:100])
 
-"""Data Breakdown"""
-
+#Print Data Breakdown
 n_chars = len(train)
 n_vocab = len(list(set(train)))
-print(n_chars)
-print(n_vocab)
-
+print("# of Unique Characters:", n_chars)
+print("# of Total Characters:", n_vocab)
 n_chars = len(new_train)
 n_vocab = len(set(train))
-print(n_chars)
-print(n_vocab)
+print("# of Unique Characters:", n_chars)
+print("# of Total Characters:", n_vocab)
 
-"""N-Grams Sequence"""
-
+#N-Grams Sequence
 seqLen = 15
 stepSize = 3
 input_chars = []
 next_char = []
 
-# for example in train:
 for i in range(0, len(new_train) - seqLen, stepSize):
   input_chars.append(new_train[i : i + seqLen])
   next_char.append(new_train[i + seqLen])
-
-# input = []
-# for x in input_chars:
-#   temp = []
-#   for y in x:
-#     temp.append(y[0])
-#   input.append(temp)
-
-# print(train[0])
 for i in range(5):
-  print(input_chars[i])
-  print(next_char[i])
+  print("Input Sequence:", input_chars[i])
+  print("Next Character Prediction:", next_char[i])
 
+#Assemble Train Datasets
 x_train = np.array(input_chars)
 x_train.flatten()
 y_train = np.array(next_char)
 y_train_2 = np_utils.to_categorical(y_train)
 
+"""Validation Data Processing"""
+
+#Load Data (optional: only if previous cells are not run and data is saved already)
+# val = pd.read_fwf('/content/drive/MyDrive/CS230/val_data.txt')
+
+#Concatenate Data
+def concatenate(data):
+    res = ''
+    for word in data:
+      # print(word)
+      res += word
+    return res
+val = concatenate(val)
+print(val[0:100])
+
+#Tokenize Data
+tokenizer = tf.keras.preprocessing.text.Tokenizer(num_words=None, char_level=True, lower=False)
+tokenizer.fit_on_texts(val)
+new_val = tokenizer.texts_to_sequences(val)
+print(new_val[0:100])
+print(val[0:100])
+
+#Print Data Breakdown
+n_chars = len(val)
+n_vocab = len(list(set(val)))
+print("# of Unique Characters:", n_chars)
+print("# of Total Characters:", n_vocab)
+n_chars = len(new_val)
+n_vocab = len(set(val))
+print("# of Unique Characters:", n_chars)
+print("# of Total Characters:", n_vocab)
+
+#N-Grams Sequence
+seqLen = 15
+stepSize = 3
+input_chars = []
+next_char = []
+
+for i in range(0, len(new_val) - seqLen, stepSize):
+  input_chars.append(new_val[i : i + seqLen])
+  next_char.append(new_val[i + seqLen])
+for i in range(5):
+  print("Input Sequence:", input_chars[i])
+  print("Next Character Prediction:", next_char[i])
+
+#Assemble Validation Datasets
+x_val = np.array(input_chars)
+x_val.flatten()
+y_val = np.array(next_char)
+y_val_2 = np_utils.to_categorical(y_val)
+
 """Model Definition"""
 
 baselineLSTM = Sequential()
-baselineLSTM.add(LSTM(units = 64, input_shape = (x_train.shape[1:])))
-# baselineLSTM.add(LSTM(units = 64, return_sequences= True, input_shape = (x_train.shape[1:])))
-# baselineLSTM.add(Dropout(0.2))
-# baselineLSTM.add(LSTM(units = 128))
+# baselineLSTM.add(LSTM(units = 64, input_shape = (x_train.shape[1:])))
+baselineLSTM.add(LSTM(units = 32, return_sequences= True, input_shape = (x_train.shape[1:])))
+baselineLSTM.add(Dropout(0.2))
+baselineLSTM.add(LSTM(units = 64))
 baselineLSTM.add(Dropout(0.2))
 baselineLSTM.add(Dense(units = 48, activation='softmax'))
 baselineLSTM.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
@@ -178,9 +224,13 @@ print(baselineLSTM.summary())
 
 """Train LSTM Model"""
 
-baselineLSTM.fit(x_train, y_train_2, epochs = 1, batch_size = 512)
+early = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=5)
+
+baselineLSTM.fit(x_train, y_train_2, epochs = 25, batch_size = 512, validation_data=(x_val, y_val_2), callbacks = [early])
 
 #INSERT PATH HERE TO SAVE MODEL TO
-path = ''
-
+path = 'baseline_lstm.h5'
 baselineLSTM.save(path)
+
+#Load Model
+savedBaselineLSTM = load_model(path)
