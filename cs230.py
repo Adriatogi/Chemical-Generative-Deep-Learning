@@ -24,7 +24,7 @@ from keras_preprocessing.sequence import pad_sequences
 from keras.models import Sequential
 from keras.layers import LSTM, Input, TimeDistributed, Dense, Activation, RepeatVector, Embedding, Dropout
 from keras.utils import np_utils
-from google.colab import drive
+#from google.colab import drive
 import tensorflow as tf
 from keras.preprocessing.text import Tokenizer
 from tensorflow import keras
@@ -32,17 +32,19 @@ from tensorflow.keras.callbacks import EarlyStopping
 from keras.models import load_model
 #drive.mount('/content/drive')
 
-DATA_PATH = "/data/data.txt"
-NEW_DATA = "/data/processed_data.txt"
-TRAIN_DATA = "/data/train_data.txt"
-TEST_DATA = "/data/test_data.txt"
-VAL_DATA = "/data/val_data.txt"
+DATA_PATH = "data/data.txt"
+NEW_DATA = "data/processed_data.txt"
+TRAIN_DATA = "data/train_data.txt"
+TEST_DATA = "data/test_data.txt"
+VAL_DATA = "data/val_data.txt"
 
 """Filter Dataset Into Smaller Segments"""
-
+count=0
 new = open(NEW_DATA, "w")
 for line in open(DATA_PATH, "r"):  
-        if 30 < len(line) < 50:
+    count += 1
+    if 30 < len(line) < 50 and count < 300000:
+        if ('T' not in line) and ('V' not in line) and ('g' not in line) and ('L' not in line) and ('8' not in line):
             new.write(line)
 file_new = np.array(list(open(NEW_DATA)))
 print(file_new.shape)
@@ -72,11 +74,11 @@ def padFile(fileName):
 
   padded_text = pad_sequences(preprocessed_pad_text, dtype=object, maxlen=max_seq_len+1, padding="post", value="!")
   # front_pad = [['?'] + i for i in padded_text]
-  print("Padded Text Arrays: ", padded_text)
+  #print("Padded Text Arrays: ", padded_text)
 
   var = ["".join(i) for i in padded_text]
   print("Padded Strings: ", var[0:5])
-  print(var)
+  #print(var)
   # with open('/content/drive/MyDrive/CS230/padded_processed_data.txt', "w") as output:
   #   for x in var:
   #     output.write(y)
@@ -93,7 +95,7 @@ var = np.array(var)
 seed = 1
 np.random.seed(seed)
 #split data into train/test
-full_train, test = train_test_split(np.array(var), test_size=0.25, random_state=seed)
+full_train, test = train_test_split(np.array(var), test_size=0.2, random_state=seed)
 # full_train, test = train_test_split(np.array(var), test_size=0.25, random_state=seed)
 
 #split full train set into smaller train set and validation (dev) set
@@ -114,10 +116,15 @@ print("Test:", test.shape)
 
 #Concatenate Data
 def concatenate(data):
-    res = ''
-    for word in data:
-      # print(word)
-      res += word
+    #res = ''
+    print(len(data))
+    #for count, word in enumerate(data):
+        #if count %1000 == 0:
+            #print(count)
+            #pass
+        # print(word)
+        #res += word
+    res = ''.join(data)
     return res
 train = concatenate(train)
 print(train[0:100])
@@ -141,7 +148,7 @@ print("# of Total Characters:", n_vocab)
 
 #N-Grams Sequence
 seqLen = 15
-stepSize = 3
+stepSize = 1
 input_chars = []
 next_char = []
 
@@ -151,13 +158,11 @@ for i in range(0, len(new_train) - seqLen, stepSize):
 for i in range(5):
   print("Input Sequence:", input_chars[i])
   print("Next Character Prediction:", next_char[i])
-
 #Assemble Train Datasets
 x_train = np.array(input_chars)
 x_train.flatten()
 y_train = np.array(next_char)
 y_train_2 = np_utils.to_categorical(y_train)
-
 """Validation Data Processing"""
 
 #Load Data (optional: only if previous cells are not run and data is saved already)
@@ -165,10 +170,13 @@ y_train_2 = np_utils.to_categorical(y_train)
 
 #Concatenate Data
 def concatenate(data):
-    res = ''
-    for word in data:
+    #res = ''
+    #for count, word in enumerate(data):
+     #   if count %100 == 0:
+      #      print(count)
       # print(word)
-      res += word
+      #  res += word
+    res = ''.join(data)
     return res
 val = concatenate(val)
 print(val[0:100])
@@ -189,16 +197,17 @@ n_chars = len(new_val)
 n_vocab = len(set(val))
 print("# of Unique Characters:", n_chars)
 print("# of Total Characters:", n_vocab)
-
+print("Difference", set(train).difference(set(val)))
 #N-Grams Sequence
 seqLen = 15
-stepSize = 3
+stepSize = 1
 input_chars = []
 next_char = []
 
 for i in range(0, len(new_val) - seqLen, stepSize):
   input_chars.append(new_val[i : i + seqLen])
   next_char.append(new_val[i + seqLen])
+#print(set(next_char.items))
 for i in range(5):
   print("Input Sequence:", input_chars[i])
   print("Next Character Prediction:", next_char[i])
@@ -208,7 +217,8 @@ x_val = np.array(input_chars)
 x_val.flatten()
 y_val = np.array(next_char)
 y_val_2 = np_utils.to_categorical(y_val)
-
+print(y_val_2)
+print(y_train_2)
 """Model Definition"""
 
 baselineLSTM = Sequential()
@@ -217,7 +227,7 @@ baselineLSTM.add(LSTM(units = 32, return_sequences= True, input_shape = (x_train
 baselineLSTM.add(Dropout(0.2))
 baselineLSTM.add(LSTM(units = 64))
 baselineLSTM.add(Dropout(0.2))
-baselineLSTM.add(Dense(units = 48, activation='softmax'))
+baselineLSTM.add(Dense(units = 43, activation='softmax'))
 baselineLSTM.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
 print(baselineLSTM.summary())
@@ -225,8 +235,11 @@ print(baselineLSTM.summary())
 """Train LSTM Model"""
 
 early = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=5)
-
-baselineLSTM.fit(x_train, y_train_2, epochs = 25, batch_size = 512, validation_data=(x_val, y_val_2), callbacks = [early])
+#print(x_val.shape)
+print(x_train.shape)
+print(y_val_2.shape)
+print(y_train_2.shape)
+baselineLSTM.fit(x_train, y_train_2, epochs = 50, batch_size = 128, validation_data=(x_val, y_val_2), verbose=1, callbacks = [early])
 
 #INSERT PATH HERE TO SAVE MODEL TO
 path = 'baseline_lstm.h5'
