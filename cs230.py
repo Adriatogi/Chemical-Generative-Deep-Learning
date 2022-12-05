@@ -30,6 +30,7 @@ from keras.preprocessing.text import Tokenizer
 from tensorflow import keras
 from tensorflow.keras.callbacks import EarlyStopping
 from keras.models import load_model
+from keras.layers import GRU
 #drive.mount('/content/drive')
 
 DATA_PATH = "data/data.txt"
@@ -220,7 +221,7 @@ y_val_2 = np_utils.to_categorical(y_val)
 print(y_val_2)
 print(y_train_2)
 """Model Definition"""
-
+'''
 baselineLSTM = Sequential()
 # baselineLSTM.add(LSTM(units = 64, input_shape = (x_train.shape[1:])))
 baselineLSTM.add(LSTM(units = 32, return_sequences= True, input_shape = (x_train.shape[1:])))
@@ -247,3 +248,22 @@ baselineLSTM.save(path)
 
 #Load Model
 savedBaselineLSTM = load_model(path)
+'''
+hybrid = Sequential()
+hybrid.add(LSTM(units = 16, return_sequences= True, input_shape = (x_train.shape[1:])))
+hybrid.add(Dropout(0.2))
+hybrid.add(GRU(units = 32), return_sequences=True)
+hybrid.add(Dropout(0.2))
+hybrid.add(LSTM(units = 32))
+hybrid.add(Dropout(0.2))
+hybrid.add(Dense(units = 43, activation='softmax'))
+
+hybrid.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+print(hybrid.summary())
+
+early = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=5)
+hybrid.fit(x_train, y_train_2, epochs = 50, batch_size = 512, validation_data=(x_val, y_val_2), callbacks = [early])
+path = 'hybrid.h5'
+hybrid.save(path)
+
