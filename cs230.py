@@ -252,7 +252,7 @@ savedBaselineLSTM = load_model(path)
 hybrid = Sequential()
 hybrid.add(LSTM(units = 16, return_sequences= True, input_shape = (x_train.shape[1:])))
 hybrid.add(Dropout(0.2))
-hybrid.add(GRU(units = 32), return_sequences=True)
+hybrid.add(GRU(units = 32, return_sequences=True))
 hybrid.add(Dropout(0.2))
 hybrid.add(LSTM(units = 32))
 hybrid.add(Dropout(0.2))
@@ -263,7 +263,7 @@ hybrid.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accu
 print(hybrid.summary())
 
 early = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=5)
-hybrid.fit(x_train, y_train_2, epochs = 50, batch_size = 512, validation_data=(x_val, y_val_2), callbacks = [early])
+hybrid.fit(x_train, y_train_2, epochs = 1, batch_size = 128, validation_data=(x_val, y_val_2), callbacks = [early])
 path = 'hybrid.h5'
 hybrid.save(path)
 
