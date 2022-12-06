@@ -32,7 +32,8 @@ from tensorflow.keras.callbacks import EarlyStopping
 from keras.models import load_model
 from keras.layers import GRU
 #drive.mount('/content/drive')
-
+import keras_tuner
+from keras_tuner import HyperModel
 DATA_PATH = "data/data.txt"
 NEW_DATA = "data/processed_data.txt"
 TRAIN_DATA = "data/train_data.txt"
@@ -164,10 +165,67 @@ x_train = np.array(input_chars)
 x_train.flatten()
 y_train = np.array(next_char)
 y_train_2 = np_utils.to_categorical(y_train)
+
+print(x_train.shape)
+print(y_train.shape)
+print(x_train[0:5])
+print(y_train[0:5])
+
 """Validation Data Processing"""
+def generate_text(seed_text, next_words, model, max_sequence_len):
+    for _ in range(next_words):
+        ind1 = 0
+        ind2 = 14
+        temp = []
+        token_list = tokenizer.texts_to_sequences([seed_text])[0]
+        token_list = np.array(token_list)
+        for token in token_list:
+            temp.append(token)
+        
+        #token_list = pad_sequences([token_list], maxlen=max_sequence_len-1, padding='pre')
+        token_list=np.array([temp])
+        token_list = token_list[ind1:ind2+1]
+        print(token_list.shape)
+        ind1 += 1
+        
+        ind2 += 1
+        print(token_list)
+        #np.reshape(token_list, (15,1))
+        predicted = model.predict(token_list, verbose=0)
+        #print(predicted)
+        ind=np.argmax(predicted)
+        print(ind)
+        print(f"Shape: {predicted.shape}")
+        output_word = ""
+        for word,index in tokenizer.word_index.items():
+            '''
+            print(tokenizer.word_index.items())
+            print(word)
+            print(ind)
+            print(index)
+            '''
+            
+            if index == ind:
+                output_word = word
+                break
+        seed_text += output_word
+    return seed_text.title()
+
+#seed ='!!!!!!!!!!!!!!?'
+seed = '?CN(C)C1=NC(=NC'
+model = keras.models.load_model('baseline_lstm.h5')
+print(model.summary())
+result = generate_text(seed, 35, model, 50)
+print(result)
+test = model.predict([[3], [20], [1], [7], [1], [1], [1], [1], [8], [1], [1], [4], [3], [3], [11]])
+test = np.argmax(test)
+print(test)
+print(tokenizer.word_index.items())
 
 #Load Data (optional: only if previous cells are not run and data is saved already)
 # val = pd.read_fwf('/content/drive/MyDrive/CS230/val_data.txt')
+
+'''
 
 #Concatenate Data
 def concatenate(data):
@@ -175,6 +233,7 @@ def concatenate(data):
     #for count, word in enumerate(data):
      #   if count %100 == 0:
       #      print(count)
+    
       # print(word)
       #  res += word
     res = ''.join(data)
@@ -220,7 +279,13 @@ y_val = np.array(next_char)
 y_val_2 = np_utils.to_categorical(y_val)
 print(y_val_2)
 print(y_train_2)
+#score = model.evaluate(x_val, y_val_2)
+#print(score[1])
+#print(result)
+'''
+'''
 """Model Definition"""
+'''
 '''
 baselineLSTM = Sequential()
 # baselineLSTM.add(LSTM(units = 64, input_shape = (x_train.shape[1:])))
@@ -249,6 +314,7 @@ baselineLSTM.save(path)
 #Load Model
 savedBaselineLSTM = load_model(path)
 '''
+'''
 hybrid = Sequential()
 hybrid.add(LSTM(units = 16, return_sequences= True, input_shape = (x_train.shape[1:])))
 hybrid.add(Dropout(0.2))
@@ -266,4 +332,45 @@ early = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=5)
 hybrid.fit(x_train, y_train_2, epochs = 1, batch_size = 128, validation_data=(x_val, y_val_2), callbacks = [early])
 path = 'hybrid.h5'
 hybrid.save(path)
+'''
+'''
+class Model(HyperModel):
+  def build(self, hp):
+    units1 = hp.Int('units1', min_value=32, max_value=512, step=32)
+    dropout1 = hp.Float(name="dropout", min_value=0.0, max_value=0.3, step=0.05)
+    units2 = hp.Int('units2', min_value=32, max_value=512, step=32)
+    dropout2 = hp.Float(name="dropout", min_value=0.0, max_value=0.3, step=0.05)
+    units3 = hp.Int('units3', min_value=32, max_value=512, step=32)
+    dropout3 = hp.Float(name="dropout", min_value=0.0, max_value=0.3, step=0.05)
+    units4 = hp.Int('units2', min_value=32, max_value=512, step=32)
+    dropout4 = hp.Float(name="dropout", min_value=0.0, max_value=0.3, step=0.05)
+    model = Sequential()
+    model.add(LSTM(units = units1, return_sequences= True, input_shape = (x_train.shape[1:])))
+    model.add(Dropout(dropout1))
+    model.add(LSTM(units = units2, return_sequences=True))
+    model.add(Dropout(dropout2))
+    model.add(LSTM(units = units3, return_sequences = True))
+    model.add(Dropout(dropout3))
+    model.add(LSTM(units = units4))
+    model.add(Dropout(dropout4))
+    model.add(Dense(units=43, activation = 'softmax'))
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+    return model
+hypermodel = Model()
 
+tuner = keras_tuner.BayesianOptimization(
+                        hypermodel=hypermodel,
+                        objective = "val_accuracy",
+                        max_trials =3,
+                        overwrite=True,
+                        directory='BO_search_dir',
+                        project_name='better_lstm')
+
+tuner.search(x_train, y_train_2, epochs=3, validation_data=(x_val, y_val_2))
+
+best_model = tuner.get_best_models()[0]
+best_model.build(input_shape= (x_train.shape[1:]))
+best_model.summary()
+
+print(tuner.results_summary())
+'''
