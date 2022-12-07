@@ -24,7 +24,7 @@ from keras.layers import GRU
 def generate_text(seed_text, next_words, model, max_sequence_len):
     for _ in range(next_words):
         token_list = Tokenizer.texts_to_sequences([seed_text])[0]
-        token_list = pad_sequences([token_list], maxlen=max_sequence_len-1, padding='pre')
+        #token_list = pad_sequences([token_list], maxlen=max_sequence_len-1, padding='pre')
         predicted = model.predict_classes(token_list, verbose=0)
         
         output_word = ""
@@ -35,6 +35,6 @@ def generate_text(seed_text, next_words, model, max_sequence_len):
         seed_text += " "+output_word
     return seed_text.title()
 
-seed = '?(O1C=C[C@H]([C'
+seed = '!!!!!!!!!!!!!!?'
 model = keras.models.load_model('hybrid.h5')
-generate_text('?', 35, model, 50)
+generate_text(seed, 35, model, 50)
