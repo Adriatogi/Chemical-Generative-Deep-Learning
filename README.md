@@ -22,14 +22,14 @@ Code for our Hybrd GRU/LSTM model can be found at hybrid_lstm.py.
 ## Transfer Learning
 These files are responsible for using the alzheimers data to transfer learn to generate more specific chemical structures
 
-[Baseline Transfer Learning Code](TL_baseline.py)<br>
+[Baseline Transfer Learning Code](TL_baseline_lstm.py)<br>
 [Improved Transfer Learning Code](TL_improved_lstm.py)<br>
 [Hybrid Training Code](TL_hybrid.py)
 
 ## Evaluation
 These two files are responsible for using the test data to evaluate both our general models and the ones we transfered learned<br>
-[Evaluate General](evalauteModelGeneralData.py)<br>
-[Evaluate Transfer learn](evalauteModelsSpecificData.py)
+[Evaluate General](evaluateModelGeneralDataset.py)<br>
+[Evaluate Transfer learn](evaluateModelsSpecificDataset.py)
 
 ## Molecule Generation
 To generate molecules, we can run this file to generate 100 and filter those that are valid
