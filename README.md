@@ -1,3 +1,4 @@
+# A Generative Deep Learning Approach for Alzheimer’s Disease Drug Discovery
 Current drug discovery efforts revolve around a time-intensive timeline that can take 10-15 years, oftentimes longer for complex neurological diseases like Alzheimer’s disease. This is a direct result of the large chemical space (approximately 1060 possible drug-like molecules) to be explored. In current drug discovery procedures, candidate compounds are oftentimes empirically selected from the general chemical space, an inefficient approach. 
 
 With the development of deep learning as an efficient method to process large amounts of data, recent research has proposed the use of deep learning approaches to accelerate the drug discovery process. Specifically, new research has demonstrated the potential for generative deep learning approaches in novel chemical generation using natural language processing (NLP) methodologies
